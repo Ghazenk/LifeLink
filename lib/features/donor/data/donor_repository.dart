@@ -1,24 +1,14 @@
+import 'package:lifelink/features/auth/data/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar_community/isar.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 
 import 'package:lifelink/core/local_db/local_database.dart';
 import 'package:lifelink/core/local_db/models/local_visit.dart';
-import 'package:lifelink/core/local_db/models/local_guardianship.dart';
+import 'package:lifelink/core/local_db/models/local_lab_result.dart';
+
 import 'package:lifelink/core/network/supabase_client.dart';
-
-class EligibilityStatus {
-  EligibilityStatus({
-    required this.isEligible,
-    required this.daysRemaining,
-    required this.nextEligibleDate,
-  });
-
-  final bool isEligible;
-  final int daysRemaining;
-  final DateTime nextEligibleDate;
-}
+import 'package:lifelink/core/network/sync_manager.dart';
 
 class DonorRepository {
   DonorRepository(this.supabase, this.isar);
@@ -33,86 +23,12 @@ class DonorRepository {
   Stream<List<LocalVisit>> getDonationHistory() {
     return isar.localVisits
         .filter()
+        .ownerUserIdEqualTo(currentUserId)
         .userIdEqualTo(currentUserId)
         .and()
         .typeEqualTo('donation')
         .sortByCreatedAtDesc()
         .watch(fireImmediately: true);
-  }
-
-  /// Calculates donation eligibility based on the 90-day cycle.
-  Future<EligibilityStatus> getEligibilityStatus() async {
-    // Look for the most recent completed donation locally.
-    final latestDonation = await isar.localVisits
-        .filter()
-        .userIdEqualTo(currentUserId)
-        .and()
-        .typeEqualTo('donation')
-        .and()
-        .statusEqualTo('completed')
-        .sortByCreatedAtDesc()
-        .findFirst();
-
-    if (latestDonation == null) {
-      return EligibilityStatus(
-        isEligible: true,
-        daysRemaining: 0,
-        nextEligibleDate: DateTime.now(),
-      );
-    }
-
-    // A standard whole blood donation cooldown is 90 days.
-    final nextEligibleDate = latestDonation.createdAt.add(const Duration(days: 90));
-    final now = DateTime.now();
-    final diff = nextEligibleDate.difference(now);
-
-    if (diff.isNegative) {
-      return EligibilityStatus(
-        isEligible: true,
-        daysRemaining: 0,
-        nextEligibleDate: now,
-      );
-    } else {
-      return EligibilityStatus(
-        isEligible: false,
-        daysRemaining: diff.inDays,
-        nextEligibleDate: nextEligibleDate,
-      );
-    }
-  }
-
-  /// Requests access to a Thalassemia patient's records.
-  Future<void> requestGuardianship(String patientId) async {
-    final uuid = const Uuid().v4();
-
-    final guardianship = LocalGuardianship()
-      ..id = uuid
-      ..donorId = currentUserId
-      ..patientId = patientId
-      ..status = 'pending'
-      ..syncStatus = GuardianshipSyncStatus.pendingInsert;
-
-    // 1. Offline-First Local Write
-    await isar.writeTxn(() async {
-      await isar.localGuardianships.put(guardianship);
-    });
-
-    // 2. Cloud Sync
-    try {
-      await supabase.from('guardianships').insert({
-        'id': uuid,
-        'donor_id': currentUserId,
-        'patient_id': patientId,
-        'status': 'pending',
-      });
-
-      await isar.writeTxn(() async {
-        guardianship.syncStatus = GuardianshipSyncStatus.synced;
-        await isar.localGuardianships.put(guardianship);
-      });
-    } catch (e) {
-      // Network failure, handled gracefully for offline sync later.
-    }
   }
 
   /// Fetches approved patients linked to this donor from Supabase.
@@ -122,8 +38,40 @@ class DonorRepository {
         .select('*, patient:profiles!guardianships_patient_id_fkey(*)')
         .eq('donor_id', currentUserId)
         .eq('status', 'approved');
-        
+
     return response;
+  }
+
+  /// Calculates total ml of blood donated by this user
+  Future<int> getImpactScore() async {
+    final visits = await isar.localVisits
+        .filter()
+        .ownerUserIdEqualTo(currentUserId)
+        .userIdEqualTo(currentUserId)
+        .and()
+        .typeEqualTo('donation')
+        .and()
+        .statusEqualTo('completed')
+        .findAll();
+
+    int totalVolume = 0;
+    for (var v in visits) {
+      final lab = await isar.localLabResults
+          .filter()
+          .ownerUserIdEqualTo(currentUserId)
+          .visitIdEqualTo(v.id)
+          .findFirst();
+      if (lab != null && lab.prescribedVolumeMl != null) {
+        totalVolume += lab.prescribedVolumeMl!.toInt();
+      }
+    }
+    return totalVolume;
+  }
+
+  /// Fetches top donors leaderboard securely via RPC
+  Future<List<Map<String, dynamic>>> getLeaderboard() async {
+    final response = await supabase.rpc('get_donor_leaderboard');
+    return List<Map<String, dynamic>>.from(response);
   }
 }
 
@@ -132,20 +80,31 @@ class DonorRepository {
 // ---------------------------------------------------------------------------
 
 final donorRepositoryProvider = Provider<DonorRepository>((ref) {
-  return DonorRepository(
-    SupabaseClientManager.client,
-    LocalDatabase.instance,
+  ref.watch(
+    authStateProvider.select((state) => state.valueOrNull?.session?.user.id),
   );
+  return DonorRepository(SupabaseClientManager.client, LocalDatabase.instance);
 });
 
-final donationHistoryProvider = StreamProvider.autoDispose<List<LocalVisit>>((ref) {
+final donationHistoryProvider = StreamProvider.autoDispose<List<LocalVisit>>((
+  ref,
+) {
   return ref.watch(donorRepositoryProvider).getDonationHistory();
 });
 
-final eligibilityStatusProvider = FutureProvider.autoDispose<EligibilityStatus>((ref) {
-  return ref.watch(donorRepositoryProvider).getEligibilityStatus();
+final linkedPatientsProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+      ref.watch(syncRevisionProvider);
+      return ref.watch(donorRepositoryProvider).getLinkedPatients();
+    });
+
+final impactScoreProvider = FutureProvider.autoDispose<int>((ref) {
+  ref.watch(syncRevisionProvider);
+  return ref.watch(donorRepositoryProvider).getImpactScore();
 });
 
-final linkedPatientsProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
-  return ref.watch(donorRepositoryProvider).getLinkedPatients();
-});
+final leaderboardProvider =
+    FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) {
+      ref.watch(syncRevisionProvider);
+      return ref.watch(donorRepositoryProvider).getLeaderboard();
+    });

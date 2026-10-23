@@ -19,14 +19,19 @@ const LocalGuardianshipSchema = CollectionSchema(
   properties: {
     r'donorId': PropertySchema(id: 0, name: r'donorId', type: IsarType.string),
     r'id': PropertySchema(id: 1, name: r'id', type: IsarType.string),
-    r'patientId': PropertySchema(
+    r'ownerUserId': PropertySchema(
       id: 2,
+      name: r'ownerUserId',
+      type: IsarType.string,
+    ),
+    r'patientId': PropertySchema(
+      id: 3,
       name: r'patientId',
       type: IsarType.string,
     ),
-    r'status': PropertySchema(id: 3, name: r'status', type: IsarType.string),
+    r'status': PropertySchema(id: 4, name: r'status', type: IsarType.string),
     r'syncStatus': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'syncStatus',
       type: IsarType.byte,
       enumMap: _LocalGuardianshipsyncStatusEnumValueMap,
@@ -39,6 +44,19 @@ const LocalGuardianshipSchema = CollectionSchema(
   deserializeProp: _localGuardianshipDeserializeProp,
   idName: r'isarId',
   indexes: {
+    r'ownerUserId': IndexSchema(
+      id: 1631799950038639233,
+      name: r'ownerUserId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'ownerUserId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
     r'id': IndexSchema(
       id: -3268401673993471357,
       name: r'id',
@@ -96,6 +114,12 @@ int _localGuardianshipEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.donorId.length * 3;
   bytesCount += 3 + object.id.length * 3;
+  {
+    final value = object.ownerUserId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.patientId.length * 3;
   bytesCount += 3 + object.status.length * 3;
   return bytesCount;
@@ -109,9 +133,10 @@ void _localGuardianshipSerialize(
 ) {
   writer.writeString(offsets[0], object.donorId);
   writer.writeString(offsets[1], object.id);
-  writer.writeString(offsets[2], object.patientId);
-  writer.writeString(offsets[3], object.status);
-  writer.writeByte(offsets[4], object.syncStatus.index);
+  writer.writeString(offsets[2], object.ownerUserId);
+  writer.writeString(offsets[3], object.patientId);
+  writer.writeString(offsets[4], object.status);
+  writer.writeByte(offsets[5], object.syncStatus.index);
 }
 
 LocalGuardianship _localGuardianshipDeserialize(
@@ -124,11 +149,12 @@ LocalGuardianship _localGuardianshipDeserialize(
   object.donorId = reader.readString(offsets[0]);
   object.id = reader.readString(offsets[1]);
   object.isarId = id;
-  object.patientId = reader.readString(offsets[2]);
-  object.status = reader.readString(offsets[3]);
+  object.ownerUserId = reader.readStringOrNull(offsets[2]);
+  object.patientId = reader.readString(offsets[3]);
+  object.status = reader.readString(offsets[4]);
   object.syncStatus =
       _LocalGuardianshipsyncStatusValueEnumMap[reader.readByteOrNull(
-        offsets[4],
+        offsets[5],
       )] ??
       GuardianshipSyncStatus.synced;
   return object;
@@ -146,10 +172,12 @@ P _localGuardianshipDeserializeProp<P>(
     case 1:
       return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
       return (reader.readString(offset)) as P;
     case 4:
+      return (reader.readString(offset)) as P;
+    case 5:
       return (_LocalGuardianshipsyncStatusValueEnumMap[reader.readByteOrNull(
                 offset,
               )] ??
@@ -323,6 +351,84 @@ extension LocalGuardianshipQueryWhere
           includeUpper: includeUpper,
         ),
       );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterWhereClause>
+  ownerUserIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'ownerUserId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterWhereClause>
+  ownerUserIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'ownerUserId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterWhereClause>
+  ownerUserIdEqualTo(String? ownerUserId) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'ownerUserId',
+          value: [ownerUserId],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterWhereClause>
+  ownerUserIdNotEqualTo(String? ownerUserId) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'ownerUserId',
+                lower: [],
+                upper: [ownerUserId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'ownerUserId',
+                lower: [ownerUserId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'ownerUserId',
+                lower: [ownerUserId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'ownerUserId',
+                lower: [],
+                upper: [ownerUserId],
+                includeUpper: false,
+              ),
+            );
+      }
     });
   }
 
@@ -819,6 +925,165 @@ extension LocalGuardianshipQueryFilter
   }
 
   QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'ownerUserId'),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'ownerUserId'),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'ownerUserId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'ownerUserId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'ownerUserId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
+  ownerUserIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'ownerUserId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterFilterCondition>
   patientIdEqualTo(String value, {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(
@@ -1192,6 +1457,20 @@ extension LocalGuardianshipQuerySortBy
   }
 
   QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterSortBy>
+  sortByOwnerUserId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerUserId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterSortBy>
+  sortByOwnerUserIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerUserId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterSortBy>
   sortByPatientId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'patientId', Sort.asc);
@@ -1278,6 +1557,20 @@ extension LocalGuardianshipQuerySortThenBy
   }
 
   QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterSortBy>
+  thenByOwnerUserId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerUserId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterSortBy>
+  thenByOwnerUserIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerUserId', Sort.desc);
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QAfterSortBy>
   thenByPatientId() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'patientId', Sort.asc);
@@ -1338,6 +1631,13 @@ extension LocalGuardianshipQueryWhereDistinct
   }
 
   QueryBuilder<LocalGuardianship, LocalGuardianship, QDistinct>
+  distinctByOwnerUserId({bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ownerUserId', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, LocalGuardianship, QDistinct>
   distinctByPatientId({bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'patientId', caseSensitive: caseSensitive);
@@ -1376,6 +1676,13 @@ extension LocalGuardianshipQueryProperty
   QueryBuilder<LocalGuardianship, String, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<LocalGuardianship, String?, QQueryOperations>
+  ownerUserIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ownerUserId');
     });
   }
 

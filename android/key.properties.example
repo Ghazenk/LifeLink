@@ -1,0 +1,5 @@
+# Copy to android/key.properties. Keep the real file and keystore out of Git.
+storeFile=../private/lifelink-release.jks
+storePassword=
+keyAlias=lifelink
+keyPassword=

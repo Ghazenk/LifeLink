@@ -1,4 +1,8 @@
+import '../legal/settings_screen.dart';
+import '../sharing/connections_screen.dart';
+
 import 'package:flutter/material.dart';
+import 'package:lifelink/features/auth/session_actions.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:lifelink/features/auth/auth_screen.dart';
@@ -17,12 +21,10 @@ class AuthWrapper extends ConsumerWidget {
     final profileAsync = ref.watch(currentUserProfileProvider);
 
     return profileAsync.when(
-      loading: () => const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      ),
-      error: (error, stack) => Scaffold(
-        body: Center(child: Text('Auth Error: $error')),
-      ),
+      loading: () =>
+          const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (error, stack) =>
+          Scaffold(body: Center(child: Text('Auth Error: $error'))),
       data: (profile) {
         if (profile == null) {
           return const AuthScreen();
@@ -42,17 +44,46 @@ class AuthWrapper extends ConsumerWidget {
               return const LabScreen();
             case 'donor':
               return const DonorScreen();
+            case 'caregiver':
+              return const CaregiverScreen();
             case 'patient':
               return const PatientScreen();
             default:
               return const Scaffold(
-                body: Center(child: Text('Unknown role or unauthorized access.')),
+                body: Center(
+                  child: Text('Unknown role or unauthorized access.'),
+                ),
               );
           }
         }
 
-        return const Scaffold(
-          body: Center(child: Text('Account status invalid.')),
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Account unavailable'),
+            actions: [
+              IconButton(
+                tooltip: 'Settings',
+                icon: const Icon(Icons.settings_outlined),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AppSettingsScreen()),
+                ),
+              ),
+            ],
+          ),
+          body: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Contact the administrator about your account access.',
+                ),
+                TextButton(
+                  onPressed: () => signOutWithFeedback(context, ref),
+                  child: const Text('Sign out'),
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -65,7 +96,18 @@ class PendingApprovalScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Account Pending')),
+      appBar: AppBar(
+        title: const Text('Account Pending'),
+        actions: [
+          IconButton(
+            tooltip: 'Settings',
+            icon: const Icon(Icons.settings_outlined),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AppSettingsScreen()),
+            ),
+          ),
+        ],
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -80,7 +122,7 @@ class PendingApprovalScreen extends ConsumerWidget {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () {
-                ref.read(authRepositoryProvider).signOut();
+                signOutWithFeedback(context, ref);
               },
               child: const Text('Sign Out'),
             ),

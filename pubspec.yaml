@@ -1,5 +1,5 @@
 name: lifelink
-description: "A new Flutter project."
+description: "LifeLink blood-bank and thalassemia workflow prototype."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -51,12 +51,19 @@ dependencies:
   # State Management (Riverpod v2)
   flutter_riverpod: ^2.6.0
 
-  # Desktop CBC Machine Serial Port Integration
-  flutter_libserialport: ^0.6.0
+  # Application utilities
   uuid: ^4.6.0
+  crypto: ^3.0.6
   intl: ^0.20.3
   qr_flutter: ^4.1.0
   connectivity_plus: ^6.0.3
+  excel: ^4.0.2
+  file_picker: ^8.1.2
+  flutter_animate: ^4.2.0
+  flutter_secure_storage: 10.0.0
+  camera: ^0.12.1
+  zxing2: ^0.2.4
+  image: ^4.3.0
 
 dev_dependencies:
   flutter_test:
@@ -86,6 +93,12 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/fonts/OFL.txt
+  fonts:
+    - family: LifeLinkRoboto
+      fonts:
+        - asset: assets/fonts/Roboto.ttf
 
   # To add assets to your application, add an assets section, like this:
   # assets:

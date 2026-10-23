@@ -5,7 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   connectivity_plus
-  flutter_libserialport
+  flutter_secure_storage_windows
   isar_community_flutter_libs
   url_launcher_windows
 )

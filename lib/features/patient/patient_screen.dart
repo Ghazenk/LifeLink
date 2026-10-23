@@ -1,9 +1,12 @@
+import 'package:lifelink/features/diet/diet_plan_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:lifelink/features/auth/session_actions.dart';
+import 'package:lifelink/core/theme/portal_shell.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 
-import 'package:lifelink/features/auth/data/auth_repository.dart';
+import '../sharing/share_code_card.dart';
+
 import 'package:lifelink/features/patient/data/patient_repository.dart';
 
 class PatientScreen extends StatefulWidget {
@@ -16,90 +19,37 @@ class PatientScreen extends StatefulWidget {
 class _PatientScreenState extends State<PatientScreen> {
   int _selectedIndex = 0;
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
-  Widget build(BuildContext context) {
-    final isWideScreen = MediaQuery.of(context).size.width >= 600;
-
-    final destinations = <_Destination>[
-      _Destination('Dashboard', Icons.dashboard_outlined, Icons.dashboard),
-      _Destination('Records', Icons.medical_information_outlined, Icons.medical_information),
-      _Destination('Guardianship', Icons.admin_panel_settings_outlined, Icons.admin_panel_settings),
-    ];
-
-    final bodyContent = IndexedStack(
-      index: _selectedIndex,
-      children: const [
-        _DashboardTab(),
-        _MedicalRecordsTab(),
-        _GuardianshipApprovalsTab(),
+  Widget build(BuildContext context) => Consumer(
+    builder: (context, ref, _) => PortalShell(
+      title: 'Patient portal',
+      subtitle: 'Your care, in one place.',
+      selectedIndex: _selectedIndex,
+      onSelected: (index) => setState(() => _selectedIndex = index),
+      onSignOut: () => signOutWithFeedback(context, ref),
+      destinations: const [
+        PortalDestination('Home', Icons.home_outlined, Icons.home),
+        PortalDestination(
+          'Records',
+          Icons.medical_information_outlined,
+          Icons.medical_information,
+        ),
+        PortalDestination(
+          'Guardians',
+          Icons.family_restroom_outlined,
+          Icons.family_restroom,
+        ),
       ],
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Patient Portal'),
-        actions: [
-          Consumer(
-            builder: (context, ref, child) {
-              return IconButton(
-                icon: const Icon(Icons.logout),
-                tooltip: 'Sign Out',
-                onPressed: () {
-                  ref.read(authRepositoryProvider).signOut();
-                },
-              );
-            },
-          ),
+      child: IndexedStack(
+        index: _selectedIndex,
+        children: const [
+          _DashboardTab(),
+          _MedicalRecordsTab(),
+          _GuardianshipApprovalsTab(),
         ],
       ),
-      body: isWideScreen
-          ? Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: _onItemTapped,
-                  labelType: NavigationRailLabelType.all,
-                  destinations: destinations.map((d) {
-                    return NavigationRailDestination(
-                      icon: Icon(d.outlinedIcon),
-                      selectedIcon: Icon(d.solidIcon),
-                      label: Text(d.label),
-                    );
-                  }).toList(),
-                ),
-                const VerticalDivider(thickness: 1, width: 1),
-                Expanded(child: bodyContent),
-              ],
-            )
-          : bodyContent,
-      bottomNavigationBar: isWideScreen
-          ? null
-          : BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-              items: destinations.map((d) {
-                return BottomNavigationBarItem(
-                  icon: Icon(d.outlinedIcon),
-                  activeIcon: Icon(d.solidIcon),
-                  label: d.label,
-                );
-              }).toList(),
-            ),
-    );
-  }
-}
-
-class _Destination {
-  const _Destination(this.label, this.outlinedIcon, this.solidIcon);
-  final String label;
-  final IconData outlinedIcon;
-  final IconData solidIcon;
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -110,8 +60,6 @@ class _DashboardTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nextTransfusionAsync = ref.watch(nextTransfusionProvider);
-    final userId = ref.read(patientRepositoryProvider).currentUserId;
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
@@ -119,7 +67,13 @@ class _DashboardTab extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Next Estimate Card
+          const SectionHeading(
+            'Your care overview',
+            'Your records and digital check-in, together.',
+          ),
+          const DietPlanLink(),
+          const SizedBox(height: 16),
+          // A fixed interval cannot determine a person's transfusion schedule.
           Card(
             color: theme.colorScheme.primaryContainer,
             elevation: 0,
@@ -127,77 +81,38 @@ class _DashboardTab extends ConsumerWidget {
               padding: const EdgeInsets.all(24.0),
               child: Column(
                 children: [
-                  Icon(Icons.calendar_month, size: 48, color: theme.colorScheme.primary),
+                  Icon(
+                    Icons.calendar_month,
+                    size: 48,
+                    color: theme.colorScheme.primary,
+                  ),
                   const SizedBox(height: 16),
                   Text(
-                    'Next Estimated Transfusion',
+                    'Next transfusion',
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: theme.colorScheme.onPrimaryContainer,
                     ),
                   ),
                   const SizedBox(height: 8),
-                  nextTransfusionAsync.when(
-                    loading: () => const CircularProgressIndicator(),
-                    error: (err, stack) => Text('Error: $err'),
-                    data: (date) {
-                      if (date == null) {
-                        return Text(
-                          'No completed visits yet.',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onPrimaryContainer,
-                          ),
-                        );
-                      }
-                      return Text(
-                        DateFormat.yMMMMd().format(date),
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      );
-                    },
+                  Text(
+                    'Confirm the date with your care team.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 48),
-          
-          // Digital ID QR Code
-          Text(
-            'Digital Check-In ID',
-            style: theme.textTheme.titleLarge,
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
+
           const Text(
-            'Present this code at Reception to quickly pull up your records and issue a token.',
+            'LifeLink does not schedule or prescribe transfusions.',
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 32),
-          Center(
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: QrImageView(
-                data: userId,
-                version: QrVersions.auto,
-                size: 250.0,
-                backgroundColor: Colors.white,
-              ),
-            ),
-          ),
+          const SizedBox(height: 24),
+          const ShareCodeCard(purpose: 'checkin'),
         ],
       ),
     );
@@ -219,7 +134,11 @@ class _MedicalRecordsTab extends ConsumerWidget {
       error: (err, stack) => Center(child: Text('Error: $err')),
       data: (records) {
         if (records.isEmpty) {
-          return const Center(child: Text('No transfusion records found.'));
+          return const PortalEmptyState(
+            icon: Icons.medical_information_outlined,
+            title: 'Your records, together',
+            message: 'Transfusion history and lab results will appear after your first recorded visit.',
+          );
         }
 
         return ListView.builder(
@@ -239,37 +158,59 @@ class _MedicalRecordsTab extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 8,
                       children: [
                         Text(
                           DateFormat.yMMMd().add_jm().format(visit.createdAt),
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                         Chip(
                           label: Text(visit.status.toUpperCase()),
-                          backgroundColor: isCompleted ? Colors.green.shade50 : Colors.orange.shade50,
+                          backgroundColor: isCompleted
+                              ? Colors.green.shade50
+                              : Colors.orange.shade50,
                           labelStyle: TextStyle(
-                            color: isCompleted ? Colors.green.shade900 : Colors.orange.shade900,
+                            color: isCompleted
+                                ? Colors.green.shade900
+                                : Colors.orange.shade900,
                             fontSize: 12,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 8),
-                    Text('Token: ${visit.tokenNumber}', style: TextStyle(color: Colors.grey.shade700)),
-                    
+                    Text(
+                      'Token: ${visit.tokenNumber}',
+                      style: TextStyle(color: Colors.grey.shade700),
+                    ),
+
                     if (lab != null) ...[
                       const Divider(height: 24),
-                      Text('Lab Results & Procedure', style: Theme.of(context).textTheme.titleMedium),
+                      Text(
+                        'Lab Results & Procedure',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                       const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Wrap(
+                        spacing: 24,
+                        runSpacing: 16,
                         children: [
                           _StatDisplay('HGB', '${lab.hemoglobin} g/dL'),
                           _StatDisplay('WBC', '${lab.wbc}'),
-                          _StatDisplay('PLT', '${lab.platelets}'),
-                          _StatDisplay('Volume', '${lab.prescribedVolumeMl ?? 0} ml', highlight: true),
+                          _StatDisplay(
+                            'Ferritin',
+                            '${lab.ferritin ?? '-'} ng/mL',
+                            highlight: true,
+                          ),
+                          _StatDisplay(
+                            'Vol',
+                            '${lab.prescribedVolumeMl ?? 0} ml',
+                          ),
                         ],
                       ),
                     ],
@@ -315,14 +256,24 @@ class _StatDisplay extends StatelessWidget {
 class _GuardianshipApprovalsTab extends ConsumerWidget {
   const _GuardianshipApprovalsTab();
 
-  Future<void> _respond(BuildContext context, WidgetRef ref, String id, String status) async {
+  Future<void> _respond(
+    BuildContext context,
+    WidgetRef ref,
+    String id,
+    String status,
+  ) async {
     try {
-      await ref.read(patientRepositoryProvider).respondToGuardianship(id, status);
+      await ref
+          .read(patientRepositoryProvider)
+          .respondToGuardianship(id, status);
       ref.invalidate(pendingGuardianshipsProvider);
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error updating status: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Error updating status: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -332,48 +283,72 @@ class _GuardianshipApprovalsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final pendingAsync = ref.watch(pendingGuardianshipsProvider);
 
-    return pendingAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Center(child: Text('Error: $err')),
-      data: (requests) {
-        if (requests.isEmpty) {
-          return const Center(child: Text('No pending guardianship requests.'));
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(16.0),
-          itemCount: requests.length,
-          itemBuilder: (context, index) {
-            final req = requests[index];
-            final donor = req['donor'] as Map<String, dynamic>?;
-
-            return Card(
-              margin: const EdgeInsets.only(bottom: 12.0),
-              child: ListTile(
-                leading: const CircleAvatar(
-                  child: Icon(Icons.volunteer_activism),
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const ShareCodeCard(purpose: 'guardian'),
+        const SizedBox(height: 24),
+        const Text(
+          'Approve only people you trust. Approval shares your visits and laboratory records. You can revoke access here.',
+        ),
+        pendingAsync.when(
+          loading: () => const LinearProgressIndicator(),
+          error: (_, _) => TextButton(
+            onPressed: () => ref.invalidate(pendingGuardianshipsProvider),
+            child: const Text('Could not load connections. Retry'),
+          ),
+          data: (requests) => Column(
+            children: [
+              if (requests.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text('No connection requests yet.'),
                 ),
-                title: Text(donor?['full_name'] ?? 'Unknown Donor'),
-                subtitle: const Text('Requested access to your medical history.'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextButton(
-                      onPressed: () => _respond(context, ref, req['id'], 'rejected'),
-                      child: const Text('REJECT', style: TextStyle(color: Colors.red)),
+              for (final req in requests)
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(req['donor_name'] as String? ?? 'Care partner'),
+                        Text(
+                          req['status'] == 'approved'
+                              ? 'Can view your care records'
+                              : 'Requests access to your care records',
+                        ),
+                        Wrap(
+                          spacing: 12,
+                          children: [
+                            TextButton(
+                              onPressed: () =>
+                                  _respond(context, ref, req['id'], 'rejected'),
+                              child: Text(
+                                req['status'] == 'approved'
+                                    ? 'Revoke access'
+                                    : 'Reject',
+                              ),
+                            ),
+                            if (req['status'] != 'approved')
+                              FilledButton(
+                                onPressed: () => _respond(
+                                  context,
+                                  ref,
+                                  req['id'],
+                                  'approved',
+                                ),
+                                child: const Text('Approve access'),
+                              ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: () => _respond(context, ref, req['id'], 'approved'),
-                      child: const Text('APPROVE'),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

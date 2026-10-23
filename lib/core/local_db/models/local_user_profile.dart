@@ -3,11 +3,7 @@ import 'package:isar_community/isar.dart';
 part 'local_user_profile.g.dart';
 
 /// Sync status for offline-first operations.
-enum SyncStatus {
-  synced,
-  pendingInsert,
-  pendingUpdate,
-}
+enum SyncStatus { synced, pendingInsert, pendingUpdate }
 
 /// Local Isar collection mirroring the Supabase `profiles` table.
 ///

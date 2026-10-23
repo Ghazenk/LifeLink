@@ -46,3 +46,25 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Secrets are configured on the server, never committed.
+.env
+.env.*
+!.env.example
+android/key.properties
+*.jks
+*.keystore
+supabase/.temp/
+
+/android/build/
+/test-results.txt
+/analyze-results.txt
+
+/build-results.txt
+
+/android/.kotlin/
+
+# Local audits and demo credentials must not be uploaded.
+/docs/database-audit-before.json
+/demo-credentials/
+*.dpapi

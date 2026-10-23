@@ -3,16 +3,16 @@ import 'package:isar_community/isar.dart';
 part 'local_guardianship.g.dart';
 
 /// Sync status for offline-first operations.
-enum GuardianshipSyncStatus {
-  synced,
-  pendingInsert,
-  pendingUpdate,
-}
+enum GuardianshipSyncStatus { synced, pendingInsert, pendingUpdate }
 
 /// Local Isar collection mirroring the Supabase `guardianships` table.
 @collection
 class LocalGuardianship {
   Id isarId = Isar.autoIncrement;
+
+  /// Account that owns this local cache/outbox entry. Null legacy rows are quarantined.
+  @Index()
+  String? ownerUserId;
 
   /// Supabase UUID.
   @Index(unique: true, replace: true)

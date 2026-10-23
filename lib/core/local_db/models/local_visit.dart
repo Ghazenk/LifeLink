@@ -3,19 +3,19 @@ import 'package:isar_community/isar.dart';
 part 'local_visit.g.dart';
 
 /// Sync status for offline-first operations.
-enum VisitSyncStatus {
-  synced,
-  pendingInsert,
-  pendingUpdate,
-}
+enum VisitSyncStatus { synced, pendingInsert, pendingUpdate }
 
 /// Local Isar collection mirroring the Supabase `visits` table.
 ///
-/// Supports offline token generation for Reception, allowing tokens 
+/// Supports offline token generation for Reception, allowing tokens
 /// to be issued even when network connectivity is lost.
 @collection
 class LocalVisit {
   Id isarId = Isar.autoIncrement;
+
+  /// Account that owns this local cache/outbox entry. Null legacy rows are quarantined.
+  @Index()
+  String? ownerUserId;
 
   /// Supabase UUID.
   @Index(unique: true, replace: true)

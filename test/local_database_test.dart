@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:isar_community/isar.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
@@ -28,7 +29,8 @@ void main() {
   });
 
   setUp(() async {
-    final dir = await PathProviderPlatform.instance.getApplicationDocumentsPath();
+    final dir = await PathProviderPlatform.instance
+        .getApplicationDocumentsPath();
     isar = await Isar.open(
       [LocalVisitSchema],
       directory: dir!,
@@ -60,7 +62,10 @@ void main() {
       });
 
       // 3. Assert (Read)
-      final retrieved = await isar.localVisits.filter().idEqualTo('test-uuid-123').findFirst();
+      final retrieved = await isar.localVisits
+          .filter()
+          .idEqualTo('test-uuid-123')
+          .findFirst();
 
       expect(retrieved, isNotNull);
       expect(retrieved!.tokenNumber, 'D-100');

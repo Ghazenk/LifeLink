@@ -1,9 +1,16 @@
+import 'package:lifelink/features/diet/diet_plan_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:lifelink/features/auth/session_actions.dart';
+import 'package:lifelink/core/theme/portal_shell.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-import 'package:lifelink/features/auth/data/auth_repository.dart';
 import 'package:lifelink/features/donor/data/donor_repository.dart';
+
+import '../sharing/share_code_card.dart';
+import '../sharing/connections_screen.dart';
+
+import 'package:flutter_animate/flutter_animate.dart';
 
 class DonorScreen extends StatefulWidget {
   const DonorScreen({super.key});
@@ -15,91 +22,41 @@ class DonorScreen extends StatefulWidget {
 class _DonorScreenState extends State<DonorScreen> {
   int _selectedIndex = 0;
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-  }
-
   @override
-  Widget build(BuildContext context) {
-    // Check screen width for responsive layout
-    final isWideScreen = MediaQuery.of(context).size.width >= 600;
-
-    final destinations = <_Destination>[
-      _Destination('Tracker', Icons.data_usage_outlined, Icons.data_usage),
-      _Destination('History', Icons.history_outlined, Icons.history),
-      _Destination('Patients', Icons.family_restroom_outlined, Icons.family_restroom),
-    ];
-
-    final bodyContent = IndexedStack(
-      index: _selectedIndex,
-      children: const [
-        _CycleTrackerTab(),
-        _DonationHistoryTab(),
-        _PatientGuardianshipTab(),
+  Widget build(BuildContext context) => Consumer(
+    builder: (context, ref, _) => PortalShell(
+      title: 'Donor portal',
+      subtitle: 'Every donation makes a difference.',
+      selectedIndex: _selectedIndex,
+      onSelected: (index) => setState(() => _selectedIndex = index),
+      onSignOut: () => signOutWithFeedback(context, ref),
+      destinations: const [
+        PortalDestination('Home', Icons.home_outlined, Icons.home),
+        PortalDestination('History', Icons.history_outlined, Icons.history),
+        PortalDestination(
+          'Family',
+          Icons.family_restroom_outlined,
+          Icons.family_restroom,
+        ),
+        PortalDestination(
+          'Impact',
+          Icons.leaderboard_outlined,
+          Icons.leaderboard,
+        ),
+        PortalDestination('Profile', Icons.person_outline, Icons.person),
       ],
-    );
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Donor Portal'),
-        actions: [
-          Consumer(
-            builder: (context, ref, child) {
-              return IconButton(
-                icon: const Icon(Icons.logout),
-                tooltip: 'Sign Out',
-                onPressed: () {
-                  ref.read(authRepositoryProvider).signOut();
-                },
-              );
-            },
-          ),
+      child: IndexedStack(
+        index: _selectedIndex,
+        children: const [
+          _CycleTrackerTab(),
+          _DonationHistoryTab(),
+          CareConnections(),
+          _LeaderboardTab(),
+          _ProfileTab(),
         ],
       ),
-      body: isWideScreen
-          ? Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: _onItemTapped,
-                  labelType: NavigationRailLabelType.all,
-                  destinations: destinations.map((d) {
-                    return NavigationRailDestination(
-                      icon: Icon(d.outlinedIcon),
-                      selectedIcon: Icon(d.solidIcon),
-                      label: Text(d.label),
-                    );
-                  }).toList(),
-                ),
-                const VerticalDivider(thickness: 1, width: 1),
-                Expanded(child: bodyContent),
-              ],
-            )
-          : bodyContent,
-      bottomNavigationBar: isWideScreen
-          ? null
-          : BottomNavigationBar(
-              currentIndex: _selectedIndex,
-              onTap: _onItemTapped,
-              items: destinations.map((d) {
-                return BottomNavigationBarItem(
-                  icon: Icon(d.outlinedIcon),
-                  activeIcon: Icon(d.solidIcon),
-                  label: d.label,
-                );
-              }).toList(),
-            ),
-    );
-  }
-}
-
-class _Destination {
-  const _Destination(this.label, this.outlinedIcon, this.solidIcon);
-  final String label;
-  final IconData outlinedIcon;
-  final IconData solidIcon;
+    ),
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -110,104 +67,87 @@ class _CycleTrackerTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final eligibilityAsync = ref.watch(eligibilityStatusProvider);
+    final impactScoreAsync = ref.watch(impactScoreProvider);
 
-    return Center(
-      child: eligibilityAsync.when(
-        loading: () => const CircularProgressIndicator(),
-        error: (err, stack) => Text('Error: $err'),
-        data: (status) {
-          final theme = Theme.of(context);
-          
-          if (status.isEligible) {
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 250,
-                      height: 250,
-                      child: CircularProgressIndicator(
-                        value: 1.0,
-                        strokeWidth: 16,
-                        color: Colors.green,
-                        backgroundColor: Colors.grey.shade200,
-                      ),
-                    ),
-                    const Icon(Icons.check_circle, size: 80, color: Colors.green),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Eligible to Donate',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    color: Colors.green.shade800,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text('Thank you for saving lives! Visit the clinic to donate.'),
-              ],
-            );
-          } else {
-            // Not eligible
-            final double progress = (90 - status.daysRemaining) / 90.0;
-            
-            return Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    SizedBox(
-                      width: 250,
-                      height: 250,
-                      child: CircularProgressIndicator(
-                        value: progress,
-                        strokeWidth: 16,
-                        color: Colors.orange,
-                        backgroundColor: Colors.grey.shade200,
-                      ),
-                    ),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${status.daysRemaining}',
-                          style: theme.textTheme.displayLarge?.copyWith(
-                            color: Colors.orange.shade800,
-                            fontWeight: FontWeight.bold,
-                          ),
+    final theme = Theme.of(context);
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SectionHeading(
+            'Your donation journey',
+            'See your impact and check in with your clinic.',
+          ),
+          const DietPlanLink(),
+          const SizedBox(height: 16),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      CircleAvatar(
+                        backgroundColor: theme.colorScheme.primaryContainer,
+                        child: Icon(
+                          Icons.bloodtype_outlined,
+                          color: theme.colorScheme.primary,
                         ),
-                        Text(
-                          'Days Left',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            color: Colors.orange.shade800,
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Donation status',
+                          style: theme.textTheme.titleLarge,
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Recovery Cycle Active',
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    color: Colors.orange.shade900,
-                    fontWeight: FontWeight.bold,
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Clinic screening required',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'LifeLink cannot determine donation eligibility from a fixed date. A qualified clinic must review your health, donation history and current screening.',
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          impactScoreAsync.when(
+            loading: () => const LinearProgressIndicator(),
+            error: (_, stack) => const SizedBox.shrink(),
+            data: (volume) {
+              final badge = volume > 2000
+                  ? 'Gold'
+                  : volume > 1000
+                  ? 'Silver'
+                  : 'Bronze';
+              return Card(
+                child: PortalRecordTile(
+                  leading: Icon(
+                    Icons.volunteer_activism_outlined,
+                    size: 32,
+                    color: theme.colorScheme.primary,
+                  ),
+                  title: Text(
+                    '$volume mL donated',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  subtitle: const Text('Your contribution so far'),
+                  trailing: Chip(label: Text('$badge donor')),
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'Next eligible date: ${DateFormat.yMMMd().format(status.nextEligibleDate)}',
-                  style: theme.textTheme.bodyLarge,
-                ),
-              ],
-            );
-          }
-        },
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -228,7 +168,11 @@ class _DonationHistoryTab extends ConsumerWidget {
       error: (err, stack) => Center(child: Text('Error: $err')),
       data: (visits) {
         if (visits.isEmpty) {
-          return const Center(child: Text('No donation history found.'));
+          return const PortalEmptyState(
+            icon: Icons.history,
+            title: 'Your journey starts here',
+            message: 'Completed donations and visit updates will appear here.',
+          );
         }
 
         return ListView.builder(
@@ -241,9 +185,11 @@ class _DonationHistoryTab extends ConsumerWidget {
 
             return Card(
               margin: const EdgeInsets.only(bottom: 12.0),
-              child: ListTile(
+              child: PortalRecordTile(
                 leading: CircleAvatar(
-                  backgroundColor: isCompleted ? Colors.green.shade100 : Colors.grey.shade200,
+                  backgroundColor: isCompleted
+                      ? Colors.green.shade100
+                      : Colors.grey.shade200,
                   child: Icon(
                     Icons.bloodtype,
                     color: isCompleted ? Colors.green : Colors.grey,
@@ -253,7 +199,9 @@ class _DonationHistoryTab extends ConsumerWidget {
                 subtitle: Text(dateStr),
                 trailing: Chip(
                   label: Text(visit.status.toUpperCase()),
-                  backgroundColor: isCompleted ? Colors.green.shade50 : Colors.grey.shade100,
+                  backgroundColor: isCompleted
+                      ? Colors.green.shade50
+                      : Colors.grey.shade100,
                 ),
               ),
             );
@@ -267,142 +215,126 @@ class _DonationHistoryTab extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 // Tab 3: Patient Guardianship
 // ---------------------------------------------------------------------------
-class _PatientGuardianshipTab extends ConsumerStatefulWidget {
-  const _PatientGuardianshipTab();
+// Tab 4: Leaderboard
+// ---------------------------------------------------------------------------
+class _LeaderboardTab extends ConsumerWidget {
+  const _LeaderboardTab();
 
   @override
-  ConsumerState<_PatientGuardianshipTab> createState() => _PatientGuardianshipTabState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final leaderboardAsync = ref.watch(leaderboardProvider);
+
+    return leaderboardAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Center(child: Text('Error: $err')),
+      data: (donors) {
+        if (donors.isEmpty) {
+          return const PortalEmptyState(
+            icon: Icons.volunteer_activism_outlined,
+            title: 'Every donor matters',
+            message: 'Community contributions will appear after donations are recorded.',
+          );
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: donors.length,
+          itemBuilder: (context, index) {
+            final donor = donors[index];
+            final rank = index + 1;
+
+            Color rankColor = Colors.grey;
+            if (rank == 1) rankColor = Colors.amber;
+            if (rank == 2) rankColor = Colors.grey.shade400;
+            if (rank == 3) rankColor = Colors.brown.shade300;
+
+            return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: PortalRecordTile(
+                    leading: CircleAvatar(
+                      backgroundColor: rank <= 3
+                          ? rankColor
+                          : Colors.blueGrey.shade100,
+                      child: Text(
+                        '#$rank',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      donor['full_name'] ?? 'Unknown',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    trailing: Text(
+                      '${donor['total_volume']} ml',
+                      style: const TextStyle(fontSize: 16, color: Colors.red),
+                    ),
+                  ),
+                )
+                .animate()
+                .slideX(delay: (index * 50).ms, begin: 0.1, end: 0)
+                .fadeIn();
+          },
+        );
+      },
+    );
+  }
 }
 
-class _PatientGuardianshipTabState extends ConsumerState<_PatientGuardianshipTab> {
-  final _patientIdController = TextEditingController();
-  bool _isRequesting = false;
+// ---------------------------------------------------------------------------
+// Tab 5: Profile (QR & Request Blood)
+// ---------------------------------------------------------------------------
+class _ProfileTab extends ConsumerWidget {
+  const _ProfileTab();
 
-  @override
-  void dispose() {
-    _patientIdController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _requestAccess() async {
-    final id = _patientIdController.text.trim();
-    if (id.isEmpty) return;
-
-    setState(() => _isRequesting = true);
-
-    try {
-      await ref.read(donorRepositoryProvider).requestGuardianship(id);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Access requested! Waiting for admin approval.')),
-        );
-        _patientIdController.clear();
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isRequesting = false);
-    }
+  Future<void> _requestBlood(BuildContext context) async {
+    showDialog(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Request Blood Transfusion'),
+        content: const Text(
+          'Please contact reception to arrange a transfusion for yourself or a dependent. Your care team will review the request and next steps.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(c),
+            child: const Text('Got it'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
-  Widget build(BuildContext context) {
-    final patientsAsync = ref.watch(linkedPatientsProvider);
-
-    return Column(
-      children: [
-        // Top Section: Request Access
-        Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Link a Thalassemia Patient',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 8),
-              const Text('Enter the Patient ID to request viewing access to their transfusion records.'),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _patientIdController,
-                      decoration: const InputDecoration(
-                        labelText: 'Patient ID (UUID)',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  FilledButton(
-                    onPressed: _isRequesting ? null : _requestAccess,
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                    ),
-                    child: _isRequesting 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Request Access'),
-                  ),
-                ],
-              ),
-            ],
+  Widget build(BuildContext context, WidgetRef ref) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            'Your profile',
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
-        ),
-        const Divider(),
-        // Bottom Section: Linked Patients
-        Expanded(
-          child: patientsAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(child: Text('Error: $err')),
-            data: (patients) {
-              if (patients.isEmpty) {
-                return const Center(
-                  child: Text('You have no approved linked patients.'),
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(16.0),
-                itemCount: patients.length,
-                itemBuilder: (context, index) {
-                  final record = patients[index];
-                  // The patient alias comes from the foreign key join
-                  final patientProfile = record['patient'] as Map<String, dynamic>?;
-                  
-                  if (patientProfile == null) return const SizedBox.shrink();
-
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12.0),
-                    child: ListTile(
-                      leading: const CircleAvatar(
-                        child: Icon(Icons.personal_injury),
-                      ),
-                      title: Text(patientProfile['full_name'] ?? 'Unknown Patient'),
-                      subtitle: Text('Blood Group: ${patientProfile['blood_group'] ?? 'Unknown'}'),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.arrow_forward_ios),
-                        onPressed: () {
-                          // Placeholder for future navigation to patient detail view
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Patient records view coming soon.')),
-                          );
-                        },
-                      ),
-                    ),
-                  );
-                },
-              );
-            },
+          const SizedBox(height: 16),
+          const ShareCodeCard(purpose: 'checkin'),
+          const SizedBox(height: 48),
+          const Divider(),
+          const SizedBox(height: 32),
+          Text('Need Blood?', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => _requestBlood(context),
+            icon: const Icon(Icons.water_drop),
+            label: const Text('How to arrange a transfusion'),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

@@ -1,0 +1,9 @@
+/* Same OFL-licensed asset used by Flutter's bundled font manifest. */
+@font-face {
+  font-family: LifeLinkRoboto;
+  src: url('assets/assets/fonts/Roboto.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+html, body { font-family: LifeLinkRoboto, Arial, sans-serif; }

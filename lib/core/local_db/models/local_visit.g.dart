@@ -23,20 +23,25 @@ const LocalVisitSchema = CollectionSchema(
       type: IsarType.dateTime,
     ),
     r'id': PropertySchema(id: 1, name: r'id', type: IsarType.string),
-    r'status': PropertySchema(id: 2, name: r'status', type: IsarType.string),
+    r'ownerUserId': PropertySchema(
+      id: 2,
+      name: r'ownerUserId',
+      type: IsarType.string,
+    ),
+    r'status': PropertySchema(id: 3, name: r'status', type: IsarType.string),
     r'syncStatus': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'syncStatus',
       type: IsarType.byte,
       enumMap: _LocalVisitsyncStatusEnumValueMap,
     ),
     r'tokenNumber': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'tokenNumber',
       type: IsarType.string,
     ),
-    r'type': PropertySchema(id: 5, name: r'type', type: IsarType.string),
-    r'userId': PropertySchema(id: 6, name: r'userId', type: IsarType.string),
+    r'type': PropertySchema(id: 6, name: r'type', type: IsarType.string),
+    r'userId': PropertySchema(id: 7, name: r'userId', type: IsarType.string),
   },
 
   estimateSize: _localVisitEstimateSize,
@@ -45,6 +50,19 @@ const LocalVisitSchema = CollectionSchema(
   deserializeProp: _localVisitDeserializeProp,
   idName: r'isarId',
   indexes: {
+    r'ownerUserId': IndexSchema(
+      id: 1631799950038639233,
+      name: r'ownerUserId',
+      unique: false,
+      replace: false,
+      properties: [
+        IndexPropertySchema(
+          name: r'ownerUserId',
+          type: IndexType.hash,
+          caseSensitive: true,
+        ),
+      ],
+    ),
     r'id': IndexSchema(
       id: -3268401673993471357,
       name: r'id',
@@ -88,6 +106,12 @@ int _localVisitEstimateSize(
 ) {
   var bytesCount = offsets.last;
   bytesCount += 3 + object.id.length * 3;
+  {
+    final value = object.ownerUserId;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.status.length * 3;
   bytesCount += 3 + object.tokenNumber.length * 3;
   bytesCount += 3 + object.type.length * 3;
@@ -103,11 +127,12 @@ void _localVisitSerialize(
 ) {
   writer.writeDateTime(offsets[0], object.createdAt);
   writer.writeString(offsets[1], object.id);
-  writer.writeString(offsets[2], object.status);
-  writer.writeByte(offsets[3], object.syncStatus.index);
-  writer.writeString(offsets[4], object.tokenNumber);
-  writer.writeString(offsets[5], object.type);
-  writer.writeString(offsets[6], object.userId);
+  writer.writeString(offsets[2], object.ownerUserId);
+  writer.writeString(offsets[3], object.status);
+  writer.writeByte(offsets[4], object.syncStatus.index);
+  writer.writeString(offsets[5], object.tokenNumber);
+  writer.writeString(offsets[6], object.type);
+  writer.writeString(offsets[7], object.userId);
 }
 
 LocalVisit _localVisitDeserialize(
@@ -120,13 +145,14 @@ LocalVisit _localVisitDeserialize(
   object.createdAt = reader.readDateTime(offsets[0]);
   object.id = reader.readString(offsets[1]);
   object.isarId = id;
-  object.status = reader.readString(offsets[2]);
+  object.ownerUserId = reader.readStringOrNull(offsets[2]);
+  object.status = reader.readString(offsets[3]);
   object.syncStatus =
-      _LocalVisitsyncStatusValueEnumMap[reader.readByteOrNull(offsets[3])] ??
+      _LocalVisitsyncStatusValueEnumMap[reader.readByteOrNull(offsets[4])] ??
       VisitSyncStatus.synced;
-  object.tokenNumber = reader.readString(offsets[4]);
-  object.type = reader.readString(offsets[5]);
-  object.userId = reader.readString(offsets[6]);
+  object.tokenNumber = reader.readString(offsets[5]);
+  object.type = reader.readString(offsets[6]);
+  object.userId = reader.readString(offsets[7]);
   return object;
 }
 
@@ -142,18 +168,20 @@ P _localVisitDeserializeProp<P>(
     case 1:
       return (reader.readString(offset)) as P;
     case 2:
-      return (reader.readString(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 3:
+      return (reader.readString(offset)) as P;
+    case 4:
       return (_LocalVisitsyncStatusValueEnumMap[reader.readByteOrNull(
                 offset,
               )] ??
               VisitSyncStatus.synced)
           as P;
-    case 4:
-      return (reader.readString(offset)) as P;
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
+      return (reader.readString(offset)) as P;
+    case 7:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -319,6 +347,85 @@ extension LocalVisitQueryWhere
           includeUpper: includeUpper,
         ),
       );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterWhereClause> ownerUserIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(indexName: r'ownerUserId', value: [null]),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterWhereClause>
+  ownerUserIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.between(
+          indexName: r'ownerUserId',
+          lower: [null],
+          includeLower: false,
+          upper: [],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterWhereClause> ownerUserIdEqualTo(
+    String? ownerUserId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addWhereClause(
+        IndexWhereClause.equalTo(
+          indexName: r'ownerUserId',
+          value: [ownerUserId],
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterWhereClause> ownerUserIdNotEqualTo(
+    String? ownerUserId,
+  ) {
+    return QueryBuilder.apply(this, (query) {
+      if (query.whereSort == Sort.asc) {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'ownerUserId',
+                lower: [],
+                upper: [ownerUserId],
+                includeUpper: false,
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'ownerUserId',
+                lower: [ownerUserId],
+                includeLower: false,
+                upper: [],
+              ),
+            );
+      } else {
+        return query
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'ownerUserId',
+                lower: [ownerUserId],
+                includeLower: false,
+                upper: [],
+              ),
+            )
+            .addWhereClause(
+              IndexWhereClause.between(
+                indexName: r'ownerUserId',
+                lower: [],
+                upper: [ownerUserId],
+                includeUpper: false,
+              ),
+            );
+      }
     });
   }
 
@@ -689,6 +796,165 @@ extension LocalVisitQueryFilter
           upper: upper,
           includeUpper: includeUpper,
         ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNull(property: r'ownerUserId'),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        const FilterCondition.isNotNull(property: r'ownerUserId'),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdEqualTo(String? value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'ownerUserId',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdStartsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.startsWith(
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdEndsWith(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.endsWith(
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.contains(
+          property: r'ownerUserId',
+          value: value,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.matches(
+          property: r'ownerUserId',
+          wildcard: pattern,
+          caseSensitive: caseSensitive,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(property: r'ownerUserId', value: ''),
+      );
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterFilterCondition>
+  ownerUserIdIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(property: r'ownerUserId', value: ''),
       );
     });
   }
@@ -1362,6 +1628,18 @@ extension LocalVisitQuerySortBy
     });
   }
 
+  QueryBuilder<LocalVisit, LocalVisit, QAfterSortBy> sortByOwnerUserId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerUserId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterSortBy> sortByOwnerUserIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerUserId', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalVisit, LocalVisit, QAfterSortBy> sortByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -1461,6 +1739,18 @@ extension LocalVisitQuerySortThenBy
     });
   }
 
+  QueryBuilder<LocalVisit, LocalVisit, QAfterSortBy> thenByOwnerUserId() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerUserId', Sort.asc);
+    });
+  }
+
+  QueryBuilder<LocalVisit, LocalVisit, QAfterSortBy> thenByOwnerUserIdDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'ownerUserId', Sort.desc);
+    });
+  }
+
   QueryBuilder<LocalVisit, LocalVisit, QAfterSortBy> thenByStatus() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'status', Sort.asc);
@@ -1538,6 +1828,14 @@ extension LocalVisitQueryWhereDistinct
     });
   }
 
+  QueryBuilder<LocalVisit, LocalVisit, QDistinct> distinctByOwnerUserId({
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'ownerUserId', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<LocalVisit, LocalVisit, QDistinct> distinctByStatus({
     bool caseSensitive = true,
   }) {
@@ -1594,6 +1892,12 @@ extension LocalVisitQueryProperty
   QueryBuilder<LocalVisit, String, QQueryOperations> idProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'id');
+    });
+  }
+
+  QueryBuilder<LocalVisit, String?, QQueryOperations> ownerUserIdProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'ownerUserId');
     });
   }
 

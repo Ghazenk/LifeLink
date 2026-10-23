@@ -3,12 +3,28 @@
 class AppConstants {
   AppConstants._();
 
-  /// Supabase project URL.
-  static const String supabaseUrl = 'https://osqirvdgczhvnacwxfgg.supabase.co';
+  /// Public API endpoint selected when the app is built. A clinic build can
+  /// target a separately deployed LAN server without changing source code.
+  /// Do not use localhost: on a staff PC that would mean the staff PC itself.
+  static const String supabaseUrl = String.fromEnvironment(
+    'LIFELINK_BACKEND_URL',
+    defaultValue: 'https://osqirvdgczhvnacwxfgg.supabase.co',
+  );
 
-  /// Supabase anonymous (publishable) key.
-  static const String supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9zcWlydmRnY3podm5hY3d4ZmdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk4NjY1MzMsImV4cCI6MjEwNTQ0MjUzM30.xzFR8Gv-gtGV12IsFw0DtovsyWa022zIdyP1l1LEvBg';
+  /// Supabase publishable key. This identifies the public client and is not an
+  /// authorization secret; access is enforced by Auth, RLS, and Edge Functions.
+  /// Service-role and third-party provider secrets must remain server-side.
+  static const String supabasePublishableKey = String.fromEnvironment(
+    'LIFELINK_BACKEND_PUBLISHABLE_KEY',
+    defaultValue: 'sb_publishable_QfLonRyXu56UAYTFRFdTow_S57_c_Zf',
+  );
+
+  static const bool hasBackendUrlOverride = bool.hasEnvironment(
+    'LIFELINK_BACKEND_URL',
+  );
+  static const bool hasBackendKeyOverride = bool.hasEnvironment(
+    'LIFELINK_BACKEND_PUBLISHABLE_KEY',
+  );
 
   /// App name displayed across the UI.
   static const String appName = 'LifeLink';
