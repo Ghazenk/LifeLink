@@ -4,6 +4,7 @@ import '../network/sync_manager.dart';
 import 'package:flutter/material.dart';
 
 import 'app_theme.dart';
+import 'adaptive_sheet.dart';
 
 class PortalDestination {
   const PortalDestination(this.label, this.icon, this.selectedIcon);
@@ -77,28 +78,21 @@ class PortalShell extends StatelessWidget {
           IconButton(
             tooltip: 'Sync status',
             icon: const Icon(Icons.cloud_sync_outlined),
-            onPressed: () => showModalBottomSheet<void>(
+            onPressed: () => showAdaptiveSheet<void>(
               context: context,
-              builder: (context) => SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      ValueListenableBuilder<String>(
-                        valueListenable: SyncManager().status,
-                        builder: (_, value, _) => Text(value),
-                      ),
-                      const SizedBox(height: 16),
-                      FilledButton.icon(
-                        onPressed: () => SyncManager().syncNow(),
-                        icon: const Icon(Icons.sync),
-                        label: const Text('Sync now'),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
-                  ),
+              builder: (context) => AppSheet(
+                title: const Text('Sync status'),
+                content: ValueListenableBuilder<String>(
+                  valueListenable: SyncManager().status,
+                  builder: (_, value, _) => Text(value),
                 ),
+                actions: [
+                  FilledButton.icon(
+                    onPressed: () => SyncManager().syncNow(),
+                    icon: const Icon(Icons.sync),
+                    label: const Text('Sync now'),
+                  ),
+                ],
               ),
             ),
           ),

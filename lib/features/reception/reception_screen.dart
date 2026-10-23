@@ -7,6 +7,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lifelink/features/auth/session_actions.dart';
 import 'package:lifelink/core/theme/portal_shell.dart';
+import 'package:lifelink/core/theme/adaptive_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
@@ -14,6 +15,7 @@ import 'package:excel/excel.dart';
 import 'data/workbook_validation.dart';
 
 import 'dart:async';
+
 import 'package:lifelink/core/network/backend_configuration.dart';
 
 import 'package:lifelink/features/reception/data/reception_repository.dart';
@@ -68,20 +70,18 @@ class _ReceptionScreenState extends State<ReceptionScreen> {
 }
 
 Future<void> _importBulkData(BuildContext context, WidgetRef ref) async {
-  final allowed = await showDialog<bool>(
+  final allowed = await showAdaptiveSheet<bool>(
     context: context,
-    builder: (ctx) => AlertDialog(
+    builder: (ctx) => AppSheet(
       title: const Text('Before importing personal information'),
-      content: const SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Import only people whose age you have verified as 13 or older and whose information you are authorized to provide. Do not select a file containing children under 13. Each row requires a sixth column, age_13_or_older, with TRUE. Files stay on this device; validated account fields are sent to Supabase.',
-            ),
-            CopyrightReportLink(),
-          ],
-        ),
+      content: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Import only people whose age you have verified as 13 or older and whose information you are authorized to provide. Do not select a file containing children under 13. Each row requires a sixth column, age_13_or_older, with TRUE. Files stay on this device; validated account fields are sent to Supabase.',
+          ),
+          CopyrightReportLink(),
+        ],
       ),
       actions: [
         TextButton(
@@ -164,10 +164,11 @@ Future<void> _importBulkData(BuildContext context, WidgetRef ref) async {
 
     if (!context.mounted) return;
     dialogOpen = true;
-    showDialog(
+    showAdaptiveSheet<void>(
       context: context,
-      barrierDismissible: false,
-      builder: (c) => const AlertDialog(
+      dismissible: false,
+      builder: (c) => const AppSheet(
+        title: Text('Importing users'),
         content: Row(
           children: [
             CircularProgressIndicator(),
@@ -363,17 +364,24 @@ class _TokenGenerationTabState extends ConsumerState<_TokenGenerationTab> {
           .issueToken(userId: userId, type: type);
 
       if (mounted) {
-        showDialog(
+        showAdaptiveSheet<void>(
           context: context,
-          builder: (ctx) => AlertDialog(
-            title: Center(child: Text(BackendConfiguration.isClinic
-                ? 'Token issued at clinic server' : 'Token saved on this device')),
+          builder: (ctx) => AppSheet(
+            title: Center(
+              child: Text(
+                BackendConfiguration.isClinic
+                    ? 'Token issued at clinic server'
+                    : 'Token saved on this device',
+              ),
+            ),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(BackendConfiguration.isClinic
-                    ? 'The shared clinic server accepted this token. Lab can refresh its queue over the LAN.'
-                    : 'Check sync is up to date before sending this token to another workstation.'),
+                Text(
+                  BackendConfiguration.isClinic
+                      ? 'The shared clinic server accepted this token. Lab can refresh its queue over the LAN.'
+                      : 'Check sync is up to date before sending this token to another workstation.',
+                ),
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -386,7 +394,10 @@ class _TokenGenerationTabState extends ConsumerState<_TokenGenerationTab> {
                   ),
                   child: Text(
                     visit.tokenNumber,
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: Theme.of(context).colorScheme.onPrimaryContainer,
                     ),
@@ -650,11 +661,11 @@ class _LiveInventoryTab extends ConsumerWidget {
     final bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
     bool isSaving = false;
 
-    await showDialog(
+    await showAdaptiveSheet<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
+          return AppSheet(
             title: const Text('Add Stock Manually'),
             content: Form(
               key: formKey,
@@ -678,9 +689,12 @@ class _LiveInventoryTab extends ConsumerWidget {
                     controller: volumeCtrl,
                     decoration: const InputDecoration(labelText: 'Volume (ml)'),
                     keyboardType: TextInputType.number,
-                    validator: (v) => v!.isEmpty || int.tryParse(v) == null
-                        ? 'Valid number required'
-                        : null,
+                    validator: (v) {
+                      final volume = int.tryParse(v?.trim() ?? '');
+                      return volume == null || volume <= 0
+                          ? 'Enter a volume greater than zero'
+                          : null;
+                    },
                   ),
                 ],
               ),
@@ -701,7 +715,7 @@ class _LiveInventoryTab extends ConsumerWidget {
                               .read(receptionRepositoryProvider)
                               .addManualStock(
                                 selectedBg,
-                                int.parse(volumeCtrl.text),
+                                int.parse(volumeCtrl.text.trim()),
                               );
                           ref.invalidate(liveInventoryProvider);
                           if (context.mounted) {

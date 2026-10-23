@@ -3,6 +3,7 @@ import 'package:lifelink/features/legal/policy_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:lifelink/features/auth/session_actions.dart';
 import 'package:lifelink/core/theme/portal_shell.dart';
+import 'package:lifelink/core/theme/adaptive_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -420,11 +421,13 @@ class _StaffActions {
   }
 
   Future<void> _deactivateStaff(Map<String, dynamic> row) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await showAdaptiveSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Confirm Deactivation'),
-        content: const Text('Revoke access for this staff member?'),
+      builder: (ctx) => AppSheet(
+        title: const Text('Deactivate staff member?'),
+        content: const Text(
+          'This person will lose access until an admin reactivates the account.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
@@ -487,11 +490,11 @@ class _StaffActions {
     final formKey = GlobalKey<FormState>();
     bool isSaving = false;
 
-    await showDialog(
+    await showAdaptiveSheet<void>(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setState) {
-          return AlertDialog(
+          return AppSheet(
             title: const Text('Edit Staff Details'),
             content: Form(
               key: formKey,
@@ -914,10 +917,10 @@ class _VisitsDataSource extends DataTableSource {
             icon: const Icon(Icons.delete, color: Colors.red),
             tooltip: 'Delete Record (Override)',
             onPressed: () async {
-              final confirm = await showDialog<bool>(
+              final confirm = await showAdaptiveSheet<bool>(
                 context: context,
-                builder: (ctx) => AlertDialog(
-                  title: const Text('Confirm Deletion'),
+                builder: (ctx) => AppSheet(
+                  title: const Text('Delete visit record?'),
                   content: const Text(
                     'Are you sure you want to permanently delete this visit record?',
                   ),

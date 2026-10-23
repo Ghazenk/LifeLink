@@ -2,6 +2,7 @@ import 'package:lifelink/features/diet/diet_plan_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:lifelink/features/auth/session_actions.dart';
 import 'package:lifelink/core/theme/portal_shell.dart';
+import 'package:lifelink/core/theme/adaptive_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -290,10 +291,10 @@ class _ProfileTab extends ConsumerWidget {
   const _ProfileTab();
 
   Future<void> _requestBlood(BuildContext context) async {
-    showDialog(
+    showAdaptiveSheet<void>(
       context: context,
-      builder: (c) => AlertDialog(
-        title: const Text('Request Blood Transfusion'),
+      builder: (c) => AppSheet(
+        title: const Text('Arrange a transfusion'),
         content: const Text(
           'Please contact reception to arrange a transfusion for yourself or a dependent. Your care team will review the request and next steps.',
         ),
