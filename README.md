@@ -1,5 +1,7 @@
 # LifeLink
 
+The current architecture, Reception workflow, security boundaries, verification results, and release blockers are collected in [Project operations and verification](docs/PROJECT_OPERATIONS_AND_VERIFICATION.md).
+
 
 
 Flutter FYP for donor, patient, reception, laboratory and administrator workflows, backed by Supabase and an account-isolated Isar offline cache.
