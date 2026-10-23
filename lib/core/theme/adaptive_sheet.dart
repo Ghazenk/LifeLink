@@ -1,5 +1,12 @@
 import 'package:flutter/material.dart';
 
+bool _useBottomSheet(BuildContext context) {
+  final platform = Theme.of(context).platform;
+  return (platform == TargetPlatform.android ||
+          platform == TargetPlatform.iOS) &&
+      MediaQuery.sizeOf(context).width < 600;
+}
+
 /// A bottom sheet on compact screens and a bounded dialog on workstations.
 /// Callers keep using the returned value to distinguish confirm from cancel.
 Future<T?> showAdaptiveSheet<T>({
@@ -7,7 +14,7 @@ Future<T?> showAdaptiveSheet<T>({
   required WidgetBuilder builder,
   bool dismissible = true,
 }) {
-  final compact = MediaQuery.sizeOf(context).width < 600;
+  final compact = _useBottomSheet(context);
   if (compact) {
     return showModalBottomSheet<T>(
       context: context,
@@ -36,7 +43,7 @@ Future<T?> showAdaptiveSheet<T>({
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
+        constraints: const BoxConstraints(maxWidth: 600),
         child: builder(dialogContext),
       ),
     ),
@@ -57,7 +64,7 @@ class AppSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 600;
+    final compact = _useBottomSheet(context);
     final theme = Theme.of(context);
     final maxHeight = MediaQuery.sizeOf(context).height * (compact ? .88 : .82);
     return Material(
@@ -71,10 +78,10 @@ class AppSheet extends StatelessWidget {
         constraints: BoxConstraints(maxHeight: maxHeight),
         child: Padding(
           padding: EdgeInsets.fromLTRB(
-            compact ? 20 : 28,
+            compact ? 24 : 32,
             compact ? 10 : 28,
-            compact ? 20 : 28,
-            compact ? 20 + MediaQuery.paddingOf(context).bottom : 28,
+            compact ? 24 : 32,
+            compact ? 24 + MediaQuery.paddingOf(context).bottom : 32,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -92,7 +99,7 @@ class AppSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 24),
               ],
               Semantics(
                 header: true,
@@ -101,10 +108,10 @@ class AppSheet extends StatelessWidget {
                   child: title,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 24),
               Flexible(child: SingleChildScrollView(child: content)),
               if (actions.isNotEmpty) ...[
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
                 if (compact)
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -115,15 +122,15 @@ class AppSheet extends StatelessWidget {
                         index--
                       ) ...[
                         SizedBox(width: double.infinity, child: actions[index]),
-                        if (index > 0) const SizedBox(height: 8),
+                        if (index > 0) const SizedBox(height: 12),
                       ],
                     ],
                   )
                 else
                   Wrap(
                     alignment: WrapAlignment.end,
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: 12,
+                    runSpacing: 12,
                     children: actions,
                   ),
               ],

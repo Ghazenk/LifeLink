@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:lifelink/core/theme/adaptive_sheet.dart';
 
-Future<void> openSheet(WidgetTester tester) async {
+Future<void> openSheet(WidgetTester tester, {TargetPlatform? platform}) async {
   await tester.pumpWidget(
     MaterialApp(
+      theme: ThemeData(platform: platform),
       home: Scaffold(
         body: Builder(
           builder: (context) => Center(
@@ -45,7 +46,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await openSheet(tester);
+    await openSheet(tester, platform: TargetPlatform.android);
     expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.text('Confirm action'), findsOneWidget);
     expect(find.text('Continue'), findsOneWidget);
@@ -60,9 +61,22 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await openSheet(tester);
+    await openSheet(tester, platform: TargetPlatform.windows);
     expect(find.byType(Dialog), findsOneWidget);
-    expect(tester.getSize(find.byType(AppSheet)).width, lessThan(600));
+    expect(tester.getSize(find.byType(AppSheet)).width, lessThanOrEqualTo(600));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a narrow Windows window keeps the desktop panel', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await openSheet(tester, platform: TargetPlatform.windows);
+    expect(find.byType(Dialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

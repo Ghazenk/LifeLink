@@ -80,6 +80,7 @@ Future<void> _importBulkData(BuildContext context, WidgetRef ref) async {
           Text(
             'Import only people whose age you have verified as 13 or older and whose information you are authorized to provide. Do not select a file containing children under 13. Each row requires a sixth column, age_13_or_older, with TRUE. Files stay on this device; validated account fields are sent to Supabase.',
           ),
+          SizedBox(height: 16),
           CopyrightReportLink(),
         ],
       ),
@@ -671,6 +672,7 @@ class _LiveInventoryTab extends ConsumerWidget {
               key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   DropdownButtonFormField<String>(
                     initialValue: selectedBg,
@@ -684,7 +686,7 @@ class _LiveInventoryTab extends ConsumerWidget {
                       if (val != null) setState(() => selectedBg = val);
                     },
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: volumeCtrl,
                     decoration: const InputDecoration(labelText: 'Volume (ml)'),

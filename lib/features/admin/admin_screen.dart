@@ -500,12 +500,14 @@ class _StaffActions {
               key: formKey,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextFormField(
                     controller: nameCtrl,
                     decoration: const InputDecoration(labelText: 'Full Name'),
                     validator: (v) => v!.isEmpty ? 'Required' : null,
                   ),
+                  const SizedBox(height: 20),
                   TextFormField(
                     controller: phoneCtrl,
                     maxLength: 11,
@@ -522,6 +524,7 @@ class _StaffActions {
                       return null;
                     },
                   ),
+                  const SizedBox(height: 20),
                   DropdownButtonFormField<String>(
                     initialValue: ['reception', 'lab'].contains(selectedRole)
                         ? selectedRole
