@@ -92,7 +92,7 @@ See [security review, configuration and deployment limitations](docs/SECURITY_AN
 
 For the first intended real-world deployment in Balochistan, follow the [facility, software and app-store release path](docs/BALOCHISTAN_RELEASE_PATH.md). Facility licensing, clinical sign-off and production security remain separate from building an APK.
 
-For a beginner-friendly plan to connect reception, lab and admin through a clinic server, see the [clinic LAN setup roadmap](docs/CLINIC_LAN_SETUP_ROADMAP.md). It separates physical wiring from the server and app work still required.
+For a step-zero, two-laptop router setup and the path to more staff PCs, see the [beginner clinic LAN guide](docs/BEGINNER_TWO_PC_CLINIC_LAN_GUIDE.md). The [clinic LAN setup roadmap](docs/CLINIC_LAN_SETUP_ROADMAP.md) separates physical wiring from the server and app work still required.
 
 The current two-Windows-laptop cable test is recorded in the [direct Ethernet guide](docs/DIRECT_ETHERNET_TWO_WINDOWS_LAPTOPS.md); the [router, switch and future CBC guide](docs/ROUTER_AND_CBC_NETWORK_GUIDE.md) explains how to expand it without assuming the analyzer's interface.
 
